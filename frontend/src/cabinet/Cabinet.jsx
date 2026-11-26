@@ -2,21 +2,57 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import WebApp from '@twa-dev/sdk';
 import { t, errorText, ownerApi, todayIn, clientLink, openUrl } from './lib';
 import { Spinner, Notice, Btn, Badge } from './ui';
+import { tm } from './moreText';
 import Onboarding from './Onboarding';
 import Bookings from './Bookings';
 import Schedule from './Schedule';
 import Services from './Services';
 import Clients from './Clients';
 import Share from './Share';
+import Settings from './Settings';
+import Plan from './Plan';
+import Integrations from './Integrations';
 
 const TABS = ['bookings', 'schedule', 'services', 'clients', 'more'];
 const ICONS = { bookings: '📋', schedule: '🗓', services: '✂️', clients: '👥', more: '⋯' };
 
+function MenuRow({ title, hint, onClick }) {
+  return (
+    <button type="button" onClick={onClick} className="flex w-full items-center justify-between rounded-xl bg-slate-50 p-3 text-left active:bg-slate-100">
+      <span>
+        <span className="block text-sm font-medium text-slate-900">{title}</span>
+        <span className="block text-xs text-slate-500">{hint}</span>
+      </span>
+      <span className="text-xl text-slate-400">›</span>
+    </button>
+  );
+}
+
 function More({ ctx, businesses, onSwitch }) {
   const b = ctx.business;
+  const [view, setView] = useState(null);
+
+  if (view) {
+    return (
+      <div className="space-y-3">
+        <Btn variant="ghost" onClick={() => setView(null)}>
+          {tm('more2.back')}
+        </Btn>
+        {view === 'settings' && <Settings ctx={ctx} />}
+        {view === 'plan' && <Plan ctx={ctx} />}
+        {view === 'integrations' && <Integrations />}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       <h1 className="text-lg font-semibold">{b.name}</h1>
+      <div className="space-y-2">
+        <MenuRow title={tm('more2.settings')} hint={tm('more2.settingsHint')} onClick={() => setView('settings')} />
+        <MenuRow title={tm('more2.plan')} hint={tm('more2.planHint')} onClick={() => setView('plan')} />
+        <MenuRow title={tm('more2.integrations')} hint={tm('more2.integrationsHint')} onClick={() => setView('integrations')} />
+      </div>
       <div className="space-y-2">
         <h2 className="text-sm font-semibold text-slate-500">{t('more.link')}</h2>
         <Share slug={b.slug} name={b.name} />
@@ -45,7 +81,6 @@ function More({ ctx, businesses, onSwitch }) {
           ))}
         </div>
       )}
-      <Notice>{t('more.soon')}</Notice>
     </div>
   );
 }
