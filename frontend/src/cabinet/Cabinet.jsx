@@ -12,6 +12,7 @@ import Share from './Share';
 import Settings from './Settings';
 import Plan from './Plan';
 import Integrations from './Integrations';
+import Templates from './Templates';
 
 const TABS = ['bookings', 'schedule', 'services', 'clients', 'more'];
 const ICONS = { bookings: '📋', schedule: '🗓', services: '✂️', clients: '👥', more: '⋯' };
@@ -39,6 +40,7 @@ function More({ ctx, businesses, onSwitch }) {
           {tm('more2.back')}
         </Btn>
         {view === 'settings' && <Settings ctx={ctx} />}
+        {view === 'templates' && <Templates ctx={ctx} />}
         {view === 'plan' && <Plan ctx={ctx} />}
         {view === 'integrations' && <Integrations />}
       </div>
@@ -50,6 +52,7 @@ function More({ ctx, businesses, onSwitch }) {
       <h1 className="text-lg font-semibold">{b.name}</h1>
       <div className="space-y-2">
         <MenuRow title={tm('more2.settings')} hint={tm('more2.settingsHint')} onClick={() => setView('settings')} />
+        <MenuRow title={tm('more2.templates')} hint={tm('more2.templatesHint')} onClick={() => setView('templates')} />
         <MenuRow title={tm('more2.plan')} hint={tm('more2.planHint')} onClick={() => setView('plan')} />
         <MenuRow title={tm('more2.integrations')} hint={tm('more2.integrationsHint')} onClick={() => setView('integrations')} />
       </div>
