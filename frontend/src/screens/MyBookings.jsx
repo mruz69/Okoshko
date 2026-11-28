@@ -1,8 +1,9 @@
 import { t } from '../i18n/index.js';
 import { formatMoney, fullDateLabel } from '../lib/format.js';
 import { Notice, Spinner, Button, errorText } from '../components/ui.jsx';
+import { tr } from '../i18n/reschedule.js';
 
-export default function MyBookings({ state, onCancel, onReload }) {
+export default function MyBookings({ state, onCancel, onReload, onReschedule }) {
   return (
     <div>
       <h2 className="text-lg font-semibold mb-3">{t('bookings.title')}</h2>
@@ -29,7 +30,12 @@ export default function MyBookings({ state, onCancel, onReload }) {
                 <div className="text-sm mt-1">{fullDateLabel(b.starts_at, b.timezone)}</div>
                 <div className="text-sm text-gray-500">{(b.items || []).join(', ')}</div>
                 <div className="text-sm font-medium mt-1">{formatMoney(b.total_price, b.currency)}</div>
-                <div className="mt-2">
+                <div className="mt-2 flex gap-2">
+                  {onReschedule && b.can_reschedule ? (
+                    <Button variant="secondary" onClick={() => onReschedule(b)} testId={'resched-' + b.id}>
+                      {tr('btn')}
+                    </Button>
+                  ) : null}
                   <Button variant="secondary" onClick={() => onCancel(b)} testId={'cancel-' + b.id}>
                     {t('bookings.cancel')}
                   </Button>
