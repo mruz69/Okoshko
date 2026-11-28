@@ -3,6 +3,10 @@ import ReactDOM from 'react-dom/client';
 import WebApp from '@twa-dev/sdk';
 import App from './App.jsx';
 import './index.css';
+import { initTheme } from './lib/theme.js';
+
+/* Светлая или тёмная тема ставится до показа экранов, чтобы не было вспышки. */
+initTheme();
 
 /* Кабинет открывается ссылкой t.me/<бот>/app?startapp=cabinet (или адресом сайта с ?cabinet=1).
    Все остальные ссылки открывают запись для клиента, как и раньше. */
