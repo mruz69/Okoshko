@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import WebApp from '@twa-dev/sdk';
-import { t } from './i18n/index.js';
+import { t, setTerms } from './i18n/index.js';
 import { api } from './lib/api.js';
 import { addDays, dateKey, fullDateLabel, parseSlug } from './lib/format.js';
 import { tr, rescheduleError } from './i18n/reschedule.js';
@@ -145,6 +145,7 @@ export default function App() {
     WebApp.expand();
     api('bootstrap', slug ? { slug } : {}).then((r) => {
       if (r.ok) {
+        if (r.data && r.data.business) setTerms(r.data.business.terminology);
         setBoot(r.data);
         setPhase('ready');
       } else {
@@ -407,3 +408,4 @@ export default function App() {
     </Shell>
   );
 }
+// конец файла App.jsx
