@@ -2,7 +2,8 @@ import { useCallback, useEffect, useState } from 'react';
 import WebApp from '@twa-dev/sdk';
 import { t } from './i18n/index.js';
 import { api } from './lib/api.js';
-import { addDays, dateKey, parseSlug } from './lib/format.js';
+import { addDays, dateKey, fullDateLabel, parseSlug } from './lib/format.js';
+import { tr, rescheduleError } from './i18n/reschedule.js';
 import { Notice, Spinner, errorText } from './components/ui.jsx';
 import Catalog from './screens/Catalog.jsx';
 import Slots from './screens/Slots.jsx';
@@ -131,6 +132,10 @@ export default function App() {
   const [submitError, setSubmitError] = useState(null);
   const [result, setResult] = useState(null);
   const [bookings, setBookings] = useState({ loading: false, error: null, bookings: [] });
+  const [resch, setResch] = useState(null);
+  const [reschSlots, setReschSlots] = useState({ loading: false, error: null, slots: [] });
+  const [reschNotice, setReschNotice] = useState(false);
+  const [reschBusy, setReschBusy] = useState(false);
 
   const business = boot ? boot.business : null;
 
@@ -151,10 +156,11 @@ export default function App() {
 
   useEffect(() => {
     const back = () => {
-      if (view === 'confirm') setView('slots');
+      if (tab === 'bookings' && resch) setResch(null);
+      else if (view === 'confirm') setView('slots');
       else if (view === 'slots') setView('catalog');
     };
-    const canBack = tab === 'book' && (view === 'slots' || view === 'confirm');
+    const canBack = (tab === 'bookings' && Boolean(resch)) || (tab === 'book' && (view === 'slots' || view === 'confirm'));
     try {
       if (canBack) {
         WebApp.BackButton.show();
@@ -172,7 +178,7 @@ export default function App() {
         /* без Telegram ничего не делаем */
       }
     };
-  }, [tab, view]);
+  }, [tab, view, resch]);
 
   const loadSlots = useCallback(
     async (ids) => {
@@ -209,6 +215,55 @@ export default function App() {
   useEffect(() => {
     if (phase === 'ready' && tab === 'bookings') loadBookings();
   }, [phase, tab]);
+
+  const loadReschSlots = useCallback(async (b) => {
+    setReschSlots({ loading: true, error: null, slots: [] });
+    const today = dateKey(new Date(), b.timezone);
+    const r = await api('available_slots', {
+      business_id: b.business_id,
+      service_ids: b.service_ids,
+      from: today,
+      to: addDays(today, 60),
+      staff_id: b.staff_id,
+    });
+    setReschSlots(
+      r.ok
+        ? { loading: false, error: null, slots: r.data.slots }
+        : { loading: false, error: r.error || 'generic', slots: [] }
+    );
+  }, []);
+
+  function startReschedule(b) {
+    setReschNotice(false);
+    setResch(b);
+    loadReschSlots(b);
+  }
+
+  async function pickReschedule(s) {
+    if (!resch || reschBusy) return;
+    const ok = await confirmDialog(tr('ask').replace('{date}', fullDateLabel(s.start, resch.timezone)));
+    if (!ok) return;
+    setReschBusy(true);
+    const r = await api('reschedule_booking', { booking_id: resch.id, starts_at: s.start });
+    setReschBusy(false);
+    if (r.ok) {
+      haptic('success');
+      setResch(null);
+      loadBookings();
+      alertText(tr('done'));
+      return;
+    }
+    if (r.error === 'slot_unavailable' || r.error === 'slot_taken') {
+      setReschNotice(true);
+      loadReschSlots(resch);
+      return;
+    }
+    alertText(rescheduleError(r.error));
+    if (r.error === 'too_late_to_reschedule' || r.error === 'booking_not_active' || r.error === 'reschedule_unavailable') {
+      setResch(null);
+      loadBookings();
+    }
+  }
 
   function toggle(id) {
     setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
@@ -296,10 +351,24 @@ export default function App() {
 
   return (
     <Shell title={business ? business.name : t('app.name')}>
-      <Tabs tab={tab} onTab={setTab} bookingsLabel={t('nav.my') + ' ' + plural} />
+      <Tabs tab={tab} onTab={(x) => { setResch(null); setTab(x); }} bookingsLabel={t('nav.my') + ' ' + plural} />
 
-      {tab === 'bookings' ? (
-        <MyBookings state={bookings} onCancel={cancelBooking} onReload={loadBookings} />
+      {tab === 'bookings' && resch ? (
+        <div>
+          <div className="mb-3">
+            <Notice text={tr('info') + ': ' + resch.business_name + ', ' + fullDateLabel(resch.starts_at, resch.timezone)} />
+          </div>
+          <Slots
+            business={{ timezone: resch.timezone }}
+            state={reschSlots}
+            notice={reschNotice}
+            onPick={pickReschedule}
+            onBack={() => setResch(null)}
+            onRetry={() => loadReschSlots(resch)}
+          />
+        </div>
+      ) : tab === 'bookings' ? (
+        <MyBookings state={bookings} onCancel={cancelBooking} onReload={loadBookings} onReschedule={startReschedule} />
       ) : !business ? (
         <Home slug={slug} businesses={boot.businesses || []} />
       ) : view === 'catalog' ? (
